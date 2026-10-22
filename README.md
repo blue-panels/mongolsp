@@ -50,6 +50,13 @@ The database of the names after `db.` is the one of a line `use("name")` above t
 without one, `db.` completes the methods alone. The fields of a collection are read from one
 of its documents, the first time they are asked for, and kept.
 
+## Running code
+
+`EXECUTE_CODE_FROM_PLAYGROUND { "connectionId", "codeToEvaluate", "filePath" }` runs code in
+`dist/languageServerWorker.js`, a thread of the server with a connection of its own: what
+`print()` prints comes as notifications `SHOW_CONSOLE_OUTPUT`, the value as the answer, a
+document of BSON in base64. Without the worker the server ends at the first such request.
+
 ## The checks
 
 ```

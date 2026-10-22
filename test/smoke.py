@@ -3,11 +3,15 @@
 
 Without MC_MONGO_URI: what it knows with no database, the methods of db, the stages and the
 operators.  With MC_MONGO_URI and MC_MONGO_DB: the collections of the database too, and the
-fields of the first collection.  The database is only read.
+fields of the first collection, and a few lines run by the worker of the server,
+dist/languageServerWorker.js, which prints and tells the name of the database.  The database is
+only read.
 """
 
+import base64
 import json
 import os
+import struct
 import subprocess
 import sys
 import time
@@ -21,6 +25,7 @@ class Server:
         self.proc = subprocess.Popen([SERVER], stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                                      stderr=subprocess.PIPE)
         self.last = 0
+        self.printed = []  # what print () of code the worker ran printed
 
     def send(self, message):
         body = json.dumps(message).encode()
@@ -48,6 +53,10 @@ class Server:
                 return m.get("result")
             if "method" in m and "id" in m:
                 self.send({"jsonrpc": "2.0", "id": m["id"], "result": None})
+            elif m.get("method") == "SHOW_CONSOLE_OUTPUT":
+                self.printed.extend(str(x) for x in m["params"])
+            elif m.get("method") == "SHOW_ERROR_MESSAGE":
+                self.printed.append("error: %s" % m["params"])
 
     def notify(self, method, params):
         self.send({"jsonrpc": "2.0", "method": method, "params": params})
@@ -63,6 +72,47 @@ class Server:
         result = self.request("textDocument/completion", position) or []
         items = result["items"] if isinstance(result, dict) else result
         return [i["label"] for i in items]
+
+
+def bson(data, at=4, end=None):
+    """The document of BSON at @at of @data: enough of it for an answer of the worker"""
+    end = end if end is not None else len(data) - 1
+    doc = {}
+    while at < end:
+        kind = data[at]
+        name_end = data.index(b"\0", at + 1)
+        name = data[at + 1:name_end].decode()
+        at = name_end + 1
+        if kind == 0x02:  # string
+            n = struct.unpack_from("<i", data, at)[0]
+            doc[name] = data[at + 4:at + 4 + n - 1].decode()
+            at += 4 + n
+        elif kind in (0x03, 0x04):  # document, array
+            n = struct.unpack_from("<i", data, at)[0]
+            sub = bson(data, at + 4, at + n - 1)
+            doc[name] = list(sub.values()) if kind == 0x04 else sub
+            at += n
+        elif kind == 0x01:
+            doc[name] = struct.unpack_from("<d", data, at)[0]
+            at += 8
+        elif kind == 0x10:
+            doc[name] = struct.unpack_from("<i", data, at)[0]
+            at += 4
+        elif kind in (0x12, 0x09, 0x11):
+            doc[name] = struct.unpack_from("<q", data, at)[0]
+            at += 8
+        elif kind == 0x08:
+            doc[name] = bool(data[at])
+            at += 1
+        elif kind in (0x0A, 0x06):
+            doc[name] = None
+        elif kind == 0x07:
+            doc[name] = "ObjectId(%s)" % data[at:at + 12].hex()
+            at += 12
+        else:
+            doc[name] = "<BSON type %#x>" % kind
+            break
+    return doc
 
 
 def show(what, labels):
@@ -97,6 +147,12 @@ def main():
             show("find({ }) of " + coll,
                  [l for l in s.complete("f.js", text, 1, len("db.%s.find({ " % coll))
                   if not l.startswith("$")])
+        # the worker: a thread of the server that connects and runs the code
+        r = s.request("EXECUTE_CODE_FROM_PLAYGROUND", {
+            "connectionId": "smoke", "filePath": "/tmp/mongolsp-smoke/run.js",
+            "codeToEvaluate": use + 'print("printed by the worker"); db.getName()'})
+        print("worker printed:", s.printed)
+        print("worker answered:", bson(base64.b64decode(r)) if r else r)
     s.proc.kill()
 
 

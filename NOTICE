@@ -1,0 +1,9 @@
+mongolsp
+
+dist/ is the language server of MongoDB for VS Code (https://github.com/mongodb-js/vscode),
+Copyright MongoDB, Inc., under the Apache License 2.0, taken without change from the release
+named in VERSION, as published on Open VSX. THIRD_PARTY_NOTICES and dist/*.LICENSE.txt are
+the notices of what it bundles, as the extension ships them.
+
+bin/, update.sh, test/ and README.md are new, under the Apache License 2.0.
+This is no product of MongoDB, Inc. and is not supported by it.

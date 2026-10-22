@@ -1,0 +1,9 @@
+#!/bin/sh
+# The language server of MongoDB for VS Code, on stdin and stdout.
+# Node 18 has no global crypto, which the driver needs to connect: it is turned on there.
+dir=$(cd "$(dirname "$0")/.." && pwd)
+major=$(node -p 'process.versions.node.split(".")[0]')
+if [ "$major" -lt 19 ]; then
+    exec node --experimental-global-webcrypto "$dir/dist/languageServer.js" --stdio "$@"
+fi
+exec node "$dir/dist/languageServer.js" --stdio "$@"

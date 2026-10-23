@@ -1,0 +1,68 @@
+name: Build
+
+# Every push: the server asked for completions, without a database, and the package built.
+# A tag v<version>-<revision>, v1.18.0-1: a release with the package and the archive of the
+# sources, install.sh in it.
+on:
+  push:
+    branches: [master]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: The server answers
+        run: |
+          node --version
+          python3 test/smoke.py
+
+      - name: The package
+        id: deb
+        run: |
+          mkdir -p out
+          revision=1
+          case "$GITHUB_REF" in
+              refs/tags/v*-*) revision="${GITHUB_REF##*-}" ;;
+          esac
+          deb=$(MONGOLSP_REVISION="$revision" packaging/build-deb.sh out)
+          dpkg-deb -I "$deb"
+          dpkg-deb -c "$deb"
+          # the server of the package, as apt puts it, answers too
+          dpkg-deb -x "$deb" out/root
+          MONGOLSP="$PWD/out/root/usr/bin/mongolsp" python3 test/smoke.py
+          echo "deb=$deb" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: mongolsp-deb
+          path: out/*.deb
+
+      - name: The release
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          deb='${{ steps.deb.outputs.deb }}'
+          version="${TAG#v}"
+          # the tag is the version of the package: v1.18.0-1
+          case "$deb" in
+              *"_${version}_all.deb") ;;
+              *) echo "the tag $TAG is not the version of $deb" >&2; exit 1 ;;
+          esac
+          git archive --prefix="mongolsp-$version/" -o "out/mongolsp-$version.tar.gz" HEAD
+          notes="mongolsp $version: the language server of $(head -n 1 VERSION).
+
+          Debian, Ubuntu: \`apt install ./mongolsp_${version}_all.deb\` (Node.js 18 or later).
+          Elsewhere: unpack the archive and run \`./install.sh\` (~/.local) or \`./install.sh /usr/local\`."
+          gh release create "$TAG" "$deb" "out/mongolsp-$version.tar.gz" --title "mongolsp $version" --notes "$notes"

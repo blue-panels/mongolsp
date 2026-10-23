@@ -9,6 +9,27 @@ This is no product of MongoDB, Inc. and is not supported by it. The server is th
 extension as released, not changed; only the scripts around it are new. "MongoDB" is a
 trademark of MongoDB, Inc.
 
+## Installing it
+
+It needs Node.js 18 or later (`apt install nodejs`); an editor finds `mongolsp` in PATH.
+
+Debian, Ubuntu: the package of a [release](https://github.com/blue-panels/mongolsp/releases),
+the server in `/usr/share/mongolsp`, `mongolsp` in `/usr/bin`:
+
+```
+sudo apt install ./mongolsp_1.18.0-1_all.deb
+```
+
+Elsewhere, from the archive of a release or a clone of this repository:
+
+```
+./install.sh                 ~/.local/share/mongolsp, and ~/.local/bin/mongolsp
+sudo ./install.sh /usr/local  for all users
+./install.sh --uninstall     takes it away again
+```
+
+coole has it in its lsp.json: `coole -Q` completes the queries with it once it is in PATH.
+
 ## What is here
 
 ```
@@ -16,6 +37,8 @@ dist/languageServer.js         the server, built by the extension (webpack), not
 dist/languageServerWorker.js   the worker the server starts to run code
 dist/*.LICENSE.txt             the licenses of what the build bundles
 bin/mongolsp                   runs the server on stdin and stdout
+install.sh                     installs it under a prefix, ~/.local by default
+packaging/build-deb.sh         builds the Debian package
 update.sh                      takes the server out of a release of the extension
 test/smoke.py                  asks the server for completions, as an editor does
 VERSION                        the release of the extension, and the sha256 of its .vsix
@@ -64,12 +87,18 @@ test/smoke.py                                    without a database
 MC_MONGO_URI=mongodb://... MC_MONGO_DB=name test/smoke.py
 ```
 
+`MONGOLSP=/usr/bin/mongolsp test/smoke.py` asks an installed server.
+
 ## Another release
 
 ```
 ./update.sh             the latest release on Open VSX
 ./update.sh 1.18.0      that one
 ```
+
+A tag of the version of the package, `v1.18.0-1`, makes a release of the workflow Build: the
+package and the archive of the sources. A release of the same extension with a change of
+mongolsp alone is `v1.18.0-2`.
 
 ## License
 

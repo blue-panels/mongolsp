@@ -17,7 +17,8 @@ import sys
 import time
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-SERVER = os.path.join(HERE, "..", "bin", "mongolsp")
+# MONGOLSP: an installed server to ask, the one of this directory otherwise
+SERVER = os.environ.get("MONGOLSP") or os.path.join(HERE, "..", "bin", "mongolsp")
 
 
 class Server:

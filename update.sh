@@ -3,6 +3,8 @@
 #   ./update.sh            the latest release
 #   ./update.sh 1.18.0     that one
 # Only the server, its worker and the notices are kept; the rest of the extension is not.
+# patches/apply.js then puts the changes of mongolsp into the server, and stops when one does not
+# fit the release any more.
 set -eu
 
 here=$(cd "$(dirname "$0")" && pwd)
@@ -20,6 +22,7 @@ mkdir -p "$here/dist"
 cp "$tmp"/extension/dist/languageServer.js "$tmp"/extension/dist/languageServer.js.LICENSE.txt \
     "$tmp"/extension/dist/languageServerWorker.js \
     "$tmp"/extension/dist/languageServerWorker.js.LICENSE.txt "$here/dist/"
+node "$here/patches/apply.js"
 cp "$tmp/extension/LICENSE.txt" "$here/LICENSE"
 cp "$tmp/extension/THIRD_PARTY_NOTICES" "$here/THIRD_PARTY_NOTICES"
 {

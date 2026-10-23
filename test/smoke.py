@@ -116,8 +116,11 @@ def bson(data, at=4, end=None):
     return doc
 
 
-def show(what, labels):
+def show(what, labels, need=True):
+    """@labels in a line; none where some are needed fails the check"""
     print("%-28s %3d  %s" % (what, len(labels), " ".join(labels[:10])))
+    if need and not labels:
+        sys.exit("%s: no completion" % what)
 
 
 def main():
@@ -132,6 +135,14 @@ def main():
     show("find({ $ })", s.complete("b.js", "db.c.find({ $ })\n", 0, 13))
     show("aggregate([{ $ }])", s.complete("c.js", "db.c.aggregate([{ $ }])\n", 0, 19))
     show("find().", s.complete("d.js", "db.c.find().\n", 0, 12))
+    # the change of patches/apply.js: db. anywhere, not at the start of a statement alone
+    show("const r = db.", s.complete("g.js", "const r = db.\n", 0, 13))
+    show("print(db.)", s.complete("h.js", "print(db.)\n", 0, 9))
+    # and not where the cursor is not after db.
+    other = s.complete("i.js", "x = db.y\ncon\n", 1, 3)
+    show("con, db.y above", other, need=False)
+    if len(other) > 3:
+        sys.exit("con: the methods of db where no db. is")
     if uri and db:
         # the connection string goes to the server on its stdin, not on a command line
         r = s.request("ACTIVE_CONNECTION_CHANGED", {"connectionId": "smoke",

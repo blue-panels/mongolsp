@@ -6,8 +6,8 @@ of the extension to run on its own, for any editor that speaks LSP. It completes
 connection to a database, the names of its collections and the fields of their documents.
 
 This is no product of MongoDB, Inc. and is not supported by it. The server is the one of the
-extension as released, not changed; only the scripts around it are new. "MongoDB" is a
-trademark of MongoDB, Inc.
+extension as released, with the changes of `patches/apply.js` alone (see "Changes"); the
+scripts around it are new. "MongoDB" is a trademark of MongoDB, Inc.
 
 ## Installing it
 
@@ -33,13 +33,14 @@ coole has it in its lsp.json: `coole -Q` completes the queries with it once it i
 ## What is here
 
 ```
-dist/languageServer.js         the server, built by the extension (webpack), not changed
+dist/languageServer.js         the server, built by the extension (webpack), patched
 dist/languageServerWorker.js   the worker the server starts to run code
 dist/*.LICENSE.txt             the licenses of what the build bundles
 bin/mongolsp                   runs the server on stdin and stdout
 install.sh                     installs it under a prefix, ~/.local by default
 packaging/build-deb.sh         builds the Debian package
 update.sh                      takes the server out of a release of the extension
+patches/apply.js               puts the changes of mongolsp into it
 test/smoke.py                  asks the server for completions, as an editor does
 VERSION                        the release of the extension, and the sha256 of its .vsix
 ```
@@ -88,6 +89,17 @@ MC_MONGO_URI=mongodb://... MC_MONGO_DB=name test/smoke.py
 ```
 
 `MONGOLSP=/usr/bin/mongolsp test/smoke.py` asks an installed server.
+
+## Changes
+
+`patches/apply.js` changes the server of the release, each change an exact text of the build
+replaced; `update.sh` runs it.
+
+- `db-member`: `db.` completes the methods and the collections anywhere, in
+  `const r = db.`, `x = db.`, `print(db.)`; the server did at the start of a statement alone.
+
+A change whose text another release has not, once, stops `update.sh`: it is to be made again for
+that release. `test/smoke.py` fails when what a change gives is not there.
 
 ## Another release
 

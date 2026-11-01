@@ -97,6 +97,18 @@ replaced; `update.sh` runs it.
 
 - `db-member`: `db.` completes the methods and the collections anywhere, in
   `const r = db.`, `x = db.`, `print(db.)`; the server did at the start of a statement alone.
+- `collection-strings`: a string that names a collection in a pipeline completes the
+  collections of the database, as `db.getCollection("")` does: `from` of `$lookup` and
+  `$graphLookup`, `coll` of `$unionWith` and `$out`, `into` of `$merge`, and `$unionWith`,
+  `$merge`, `$out` given a string. The server offered the fields there. The names go in as
+  they are, in the string.
+- `lookup-fields`: the fields of `$lookup` and `$graphLookup` complete the fields of their
+  collection, without the `$` of a field path: `localField` those of the collection of the
+  pipeline, `foreignField`, `connectFromField` and `connectToField` those of `from`. The server
+  offered the `$fields` of the collection of the pipeline there.
+- `complete-unfinished`: code typed and not finished completes too. A file that does not parse
+  is parsed again as its text up to the cursor, with the string and the brackets open there
+  closed: `from: "co`, `aggregate([{ $` complete. The server completed nothing in such a file.
 
 A change whose text another release has not, once, stops `update.sh`: it is to be made again for
 that release. `test/smoke.py` fails when what a change gives is not there.

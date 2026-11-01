@@ -138,6 +138,8 @@ def main():
     # the change of patches/apply.js: db. anywhere, not at the start of a statement alone
     show("const r = db.", s.complete("g.js", "const r = db.\n", 0, 13))
     show("print(db.)", s.complete("h.js", "print(db.)\n", 0, 9))
+    # the change of patches/apply.js: code not finished, a pipeline open, completes too
+    show("aggregate([{ $ unclosed", s.complete("k.js", "db.c.aggregate([{ $\n", 0, 19))
     # and not where the cursor is not after db.
     other = s.complete("i.js", "x = db.y\ncon\n", 1, 3)
     show("con, db.y above", other, need=False)
@@ -154,6 +156,14 @@ def main():
         collections = [n for n in s.complete("e.js", use + "db.\n", 1, 3) if n not in methods]
         show("use(db); db. collections", collections)
         coll = collections[0] if collections else None
+        # the change of patches/apply.js: a collection named in a pipeline
+        text = use + 'db.c.aggregate([{ $lookup: { from: "" } }])\n'
+        show('$lookup: { from: "" }',
+             s.complete("j.js", text, 1, len('db.c.aggregate([{ $lookup: { from: "')))
+        if coll:
+            text = use + 'db.c.aggregate([{ $lookup: { from: "%s", foreignField: "" } }])\n' % coll
+            show("foreignField of " + coll, s.complete("l.js", text, 1, len(
+                'db.c.aggregate([{ $lookup: { from: "%s", foreignField: "' % coll)))
         if coll:
             text = use + "db.%s.find({  })\n" % coll
             show("find({ }) of " + coll,
